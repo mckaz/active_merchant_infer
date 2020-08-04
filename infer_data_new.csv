@@ -264,7 +264,7 @@ ActiveMerchant::Billing::CreditCard,brand,() -> String,,"def brand
           @brand
         end
       end"
-ActiveMerchant::Billing::CreditCard,brand=,((String and [ ==: (String) -> XXX ] and [ respond_to?: (:downcase) -> XXX ])) -> String,,"def brand=(value)
+ActiveMerchant::Billing::CreditCard,brand=,(((XXX or XXX) and [ downcase: () -> XXX ] and [ respond_to?: (:downcase) -> XXX ] and [ to_s: () -> String ])) -> (((XXX or XXX) and [ to_s: () -> String ]) or XXX or XXX),,"def brand=(value)
         value = value && value.to_s.dup
         @brand = (value.respond_to?(:downcase) ? value.downcase : value)
       end"
@@ -284,7 +284,7 @@ ActiveMerchant::Billing::CreditCard,type,() -> String,,"def type
         ActiveMerchant.deprecated 'CreditCard#type is deprecated and will be removed from a future release of ActiveMerchant. Please use CreditCard#brand instead.'
         brand
       end"
-ActiveMerchant::Billing::CreditCard,type=,((String and [ ==: (String) -> XXX ] and [ respond_to?: (:downcase) -> XXX ])) -> String,,"def type=(value)
+ActiveMerchant::Billing::CreditCard,type=,(((XXX or XXX) and [ downcase: () -> XXX ] and [ respond_to?: (:downcase) -> XXX ] and [ to_s: () -> String ])) -> (((XXX or XXX) and [ to_s: () -> String ]) or XXX or XXX),,"def type=(value)
         ActiveMerchant.deprecated 'CreditCard#type is deprecated and will be removed from a future release of ActiveMerchant. Please use CreditCard#brand instead.'
         self.brand = value
       end"

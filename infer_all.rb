@@ -50,7 +50,7 @@ RDL.infer_file './lib/active_merchant/billing/check.rb'
 RDL.infer_file './lib/active_merchant/billing/credit_card.rb'
 RDL.infer_file './lib/active_merchant/billing/credit_card_formatting.rb'
 
-#RDL.no_infer_meth ActiveMerchant::Billing::CreditCardMethods, :electron? ### POTENTIAL BUG: No var/method called `number`
+RDL.no_infer_meth ActiveMerchant::Billing::CreditCardMethods, :electron?
 RDL.no_infer_meth ActiveMerchant::Billing::CreditCardMethods::ClassMethods, :valid_naranja_algo? ### can't handle map case
 RDL.infer_file './lib/active_merchant/billing/credit_card_methods.rb'
 

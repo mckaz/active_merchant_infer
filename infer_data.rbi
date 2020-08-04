@@ -18,7 +18,7 @@ module ActiveMerchant
     def configure_debugging(http); end
 
     # RDL Type: ((ActiveMerchant::Billing::Gateway or ActiveMerchant::Connection or Net::HTTP)) -> XXX
-    sig { params(http: T.any(Net::HTTP, ActiveMerchant::Billing::Gateway, ActiveMerchant::Connection)).returns(T.untyped) }
+    sig { params(http: T.any(ActiveMerchant::Billing::Gateway, ActiveMerchant::Connection, Net::HTTP)).returns(T.untyped) }
     def configure_timeouts(http); end
 
     # RDL Type: (Net::HTTP) -> nil
@@ -213,8 +213,8 @@ module ActiveMerchant
       sig { returns(String) }
       def brand; end
 
-      # RDL Type: ((String and [ ==: (String) -> XXX ] and [ respond_to?: (:downcase) -> XXX ])) -> String
-      sig { params(value: String).returns(String) }
+      # RDL Type: (((XXX or XXX) and [ downcase: () -> XXX ] and [ respond_to?: (:downcase) -> XXX ] and [ to_s: () -> String ])) -> (((XXX or XXX) and [ to_s: () -> String ]) or XXX or XXX)
+      sig { params(value: T.untyped).returns(T.untyped) }
       def brand=(value); end
 
       # RDL Type: ((false or true)) -> (false or true)
@@ -229,8 +229,8 @@ module ActiveMerchant
       sig { returns(String) }
       def type; end
 
-      # RDL Type: ((String and [ ==: (String) -> XXX ] and [ respond_to?: (:downcase) -> XXX ])) -> String
-      sig { params(value: String).returns(String) }
+      # RDL Type: (((XXX or XXX) and [ downcase: () -> XXX ] and [ respond_to?: (:downcase) -> XXX ] and [ to_s: () -> String ])) -> (((XXX or XXX) and [ to_s: () -> String ]) or XXX or XXX)
+      sig { params(value: T.untyped).returns(T.untyped) }
       def type=(value); end
 
       # RDL Type: () -> ActiveMerchant::Billing::CreditCard::ExpiryDate
@@ -286,15 +286,15 @@ module ActiveMerchant
       def emv?; end
 
       # RDL Type: () -> Array<([:first_name, String] or [:last_name, String] or [:month, String] or [:year, String])>
-      sig { returns(T::Array[T.any(T::Array[T.any(Symbol, String)], T::Array[T.any(Symbol, String)], T::Array[T.any(Symbol, String)], T::Array[T.any(Symbol, String)])]) }
+      sig { returns(T::Array[T.any(T::Array[T.any(String, Symbol)], T::Array[T.any(String, Symbol)], T::Array[T.any(String, Symbol)], T::Array[T.any(String, Symbol)])]) }
       def validate_essential_attributes; end
 
       # RDL Type: () -> Array<([:brand, String] or [:number, String])>
-      sig { returns(T::Array[T.any(T::Array[T.any(Symbol, String)], T::Array[T.any(Symbol, String)])]) }
+      sig { returns(T::Array[T.any(T::Array[T.any(String, Symbol)], T::Array[T.any(String, Symbol)])]) }
       def validate_card_brand_and_number; end
 
       # RDL Type: () -> Array<[:verification_value, String]>
-      sig { returns(T::Array[T::Array[T.any(Symbol, String)]]) }
+      sig { returns(T::Array[T::Array[T.any(String, Symbol)]]) }
       def validate_verification_value; end
 
       class ExpiryDate
@@ -318,7 +318,7 @@ module ActiveMerchant
 
     module CreditCardFormatting
       # RDL Type: ((ActiveMerchant::Billing::CreditCard or ActiveMerchant::Billing::CreditCard::ExpiryDate or ActiveSupport::TimeWithZone or Date or Number or TZInfo::TimeOrDateTime or Time)) -> String
-      sig { params(credit_card: T.any(ActiveMerchant::Billing::CreditCard, Integer, Time, ActiveMerchant::Billing::CreditCard::ExpiryDate, TZInfo::TimeOrDateTime, Date, ActiveSupport::TimeWithZone)).returns(String) }
+      sig { params(credit_card: T.any(ActiveMerchant::Billing::CreditCard, ActiveMerchant::Billing::CreditCard::ExpiryDate, ActiveSupport::TimeWithZone, Date, Integer, TZInfo::TimeOrDateTime, Time)).returns(String) }
       def expdate(credit_card); end
 
       # RDL Type: (([ blank?: () -> XXX ] and [ to_i: () -> Number ]), XXX) -> ([ blank?: () -> XXX ] and [ to_i: () -> Number ])
@@ -381,11 +381,11 @@ module ActiveMerchant
         def first_digits(number); end
 
         # RDL Type: ((String and [ slice: (Range<Number>) -> XXX ])) -> String
-        sig { params(number: String).returns(String) }
+        sig { params(number: T.untyped).returns(String) }
         def last_digits(number); end
 
         # RDL Type: ((String and [ slice: (Range<Number>) -> XXX ])) -> String
-        sig { params(number: String).returns(String) }
+        sig { params(number: T.untyped).returns(String) }
         def mask(number); end
 
         # RDL Type: (XXX, XXX) -> (false or true)
@@ -470,7 +470,7 @@ module ActiveMerchant
       def add_field_to_post_if_present(post, options, field); end
 
       # RDL Type: ((false or nil or true)) -> (false or nil or true)
-      sig { params(field: T.any(FalseClass, TrueClass, NilClass)).returns(T.any(FalseClass, TrueClass, NilClass)) }
+      sig { params(field: T.any(FalseClass, NilClass, TrueClass)).returns(T.any(FalseClass, NilClass, TrueClass)) }
       def normalize(field); end
 
       # RDL Type: () -> (XXX or XXX)
@@ -478,7 +478,7 @@ module ActiveMerchant
       def user_agent; end
 
       # RDL Type: ((Rake::FileList or String)) -> (Rake::FileList or String)
-      sig { params(xml: T.any(String, Rake::FileList)).returns(T.any(String, Rake::FileList)) }
+      sig { params(xml: T.any(Rake::FileList, String)).returns(T.any(Rake::FileList, String)) }
       def strip_invalid_xml_chars(xml); end
 
       # RDL Type: () -> %any
@@ -579,7 +579,7 @@ module ActiveMerchant
       def process(ignore_result = nil); end
 
       # RDL Type: ((ActiveMerchant::Billing::MultiResponse or OpenSSL::OCSP::BasicResponse)) -> XXX
-      sig { params(response: T.any(OpenSSL::OCSP::BasicResponse, ActiveMerchant::Billing::MultiResponse)).returns(T.untyped) }
+      sig { params(response: T.any(ActiveMerchant::Billing::MultiResponse, OpenSSL::OCSP::BasicResponse)).returns(T.untyped) }
       def <<(response); end
 
       # RDL Type: () -> true
