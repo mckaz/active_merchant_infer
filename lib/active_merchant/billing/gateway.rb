@@ -314,10 +314,11 @@ module ActiveMerchant #:nodoc:
       def requires!(hash, *params)
         params.each do |param|
           if param.is_a?(Array)
-            raise ArgumentError.new("Missing required parameter: #{param.first}") unless hash.has_key?(param.first)
+            #param = RDL.type_cast(param, "Array<Symbol>")
+            raise ArgumentError.new("Missing required parameter: #{RDL.type_cast(param, "Array<Symbol>").first}") unless hash.has_key?(RDL.type_cast(param, "Array<Symbol>").first)
 
-            valid_options = param[1..-1]
-            raise ArgumentError.new("Parameter: #{param.first} must be one of #{valid_options.to_sentence(:words_connector => 'or')}") unless valid_options.include?(hash[param.first])
+            valid_options = RDL.type_cast(param, "Array<Symbol>")[1..-1]
+            raise ArgumentError.new("Parameter: #{RDL.type_cast(param, "Array<Symbol>").first} must be one of #{valid_options.to_sentence(:words_connector => 'or')}") unless valid_options.include?(hash[RDL.type_cast(param, "Array<Symbol>").first])
           else
             raise ArgumentError.new("Missing required parameter: #{param}") unless hash.has_key?(param)
           end

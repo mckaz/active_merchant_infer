@@ -3,12 +3,12 @@ module ActiveMerchant
     module Compatibility
       module Model
         def valid?
-          Compatibility.deprecated
+          ::ActiveMerchant::Billing::Compatibility.deprecated
           super
         end
 
         def errors
-          Compatibility.deprecated
+          ::ActiveMerchant::Billing::Compatibility.deprecated
           internal_errors
         end
       end

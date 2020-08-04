@@ -2,7 +2,7 @@ module ActiveMerchant
   module Empty
     private
 
-    def empty?(value)
+    def empty?(value)      
       case value
       when nil
         true

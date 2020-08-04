@@ -26,7 +26,7 @@ module ActiveMerchant
         rescue Errno::ECONNREFUSED => e
           raise ActiveMerchant::RetriableConnectionError.new('The remote server refused the connection', e)
         rescue OpenSSL::X509::CertificateError => e
-          NetworkConnectionRetries.log(options[:logger], :error, e.message, options[:tag])
+          ActiveMerchant::NetworkConnectionRetries.log(options[:logger], :error, e.message, options[:tag])
           raise ActiveMerchant::ClientCertificateError, 'The remote server did not accept the provided SSL certificate'
         rescue Zlib::BufError
           raise ActiveMerchant::InvalidResponseError, 'The remote server replied with an invalid response'
@@ -69,7 +69,7 @@ module ActiveMerchant
     end
 
     def log_with_retry_details(logger, attempts, time, message, tag)
-      NetworkConnectionRetries.log(logger, :info, 'connection_attempt=%d connection_request_time=%.4fs connection_msg="%s"' % [attempts, time, message], tag)
+      ActiveMerchant::NetworkConnectionRetries.log(logger, :info, 'connection_attempt=%d connection_request_time=%.4fs connection_msg="%s"' % [attempts, time, message], tag)
     end
 
     def derived_error_message(errors, klass)

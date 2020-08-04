@@ -1,3 +1,3 @@
-require 'active_merchant/billing/compatibility'
+require './compatibility'
 
 ActiveMerchant::Billing::Compatibility.rails_required!

@@ -30,13 +30,14 @@ module ActiveMerchant #:nodoc:
         '135' => STANDARD_ERROR_CODE[:incorrect_address],
       }
 
-      def initialize(options={})
+      def initialize(options={})        
         requires!(options, :username, :password, :merchant_account)
         @username, @password, @merchant_account = options.values_at(:username, :password, :merchant_account)
         super
       end
 
       def purchase(money, payment, options={})
+        options = RDL.type_cast(options, "{ order_id: Integer, ip: Integer, customer: String or Integer, invoice: Integer, merchant: String, description: String, email: String, currency: String, billing_address: { name: String, company: String, address1: String, address2: String, city: String, country: String or Integer, state: String or Integer, zip: String or Integer, phone: String or Integer }, shipping_address: { name: String, company: String, address1: String, address2: String, city: String, country: String or Integer, state: String or Integer, zip: String or Integer, phone: String or Integer }, splits: Array<Hash<String, Hash<String, Integer>>> }")
         if options[:execute_threed] || options[:threed_dynamic]
           authorize(money, payment, options)
         else
@@ -48,6 +49,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def authorize(money, payment, options={})
+        options = RDL.type_cast(options, "{ order_id: Integer, ip: Integer, customer: String or Integer, invoice: Integer, merchant: String, description: String, email: String, currency: String, billing_address: { name: String, company: String, address1: String, address2: String, city: String, country: String or Integer, state: String or Integer, zip: String or Integer, phone: String or Integer }, shipping_address: { name: String, company: String, address1: String, address2: String, city: String, country: String or Integer, state: String or Integer, zip: String or Integer, phone: String or Integer }, splits: Array<Hash<String, Hash<String, Integer>>> }")
         requires!(options, :order_id)
         post = init_post(options)
         add_invoice(post, money, options)

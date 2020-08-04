@@ -83,7 +83,7 @@ module ActiveMerchant
             info "connection_ssl_version=#{ssl_connection[:version]} connection_ssl_cipher=#{ssl_connection[:cipher]}", tag
 
             result =
-              case method
+              RDL.type_cast(case method
               when :get
                 raise ArgumentError, 'GET requests do not support a request body' if body
                 http.get(endpoint.request_uri, headers)
@@ -110,7 +110,7 @@ module ActiveMerchant
                 end
               else
                 raise ArgumentError, "Unsupported request method #{method.to_s.upcase}"
-              end
+              end, "Net::HTTPResponse")
           end
 
           info '--> %d %s (%d %.4fs)' % [result.code, result.message, result.body ? result.body.length : 0, realtime], tag

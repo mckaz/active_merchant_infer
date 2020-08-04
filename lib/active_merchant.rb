@@ -38,16 +38,16 @@ require 'rexml/document'
 require 'timeout'
 require 'socket'
 require 'openssl'
+## MKCHANGE: I changed the below to require_relative instead of require
+require_relative 'active_merchant/network_connection_retries'
+require_relative 'active_merchant/net_http_ssl_connection'
+require_relative 'active_merchant/connection'
+require_relative 'active_merchant/post_data'
+require_relative 'active_merchant/posts_data'
 
-require 'active_merchant/network_connection_retries'
-require 'active_merchant/net_http_ssl_connection'
-require 'active_merchant/connection'
-require 'active_merchant/post_data'
-require 'active_merchant/posts_data'
-
-require 'active_merchant/billing'
-require 'active_merchant/version'
-require 'active_merchant/country'
+require_relative 'active_merchant/billing'
+require_relative 'active_merchant/version'
+require_relative 'active_merchant/country'
 
 module ActiveMerchant
   def self.deprecated(message, caller=Kernel.caller[1])

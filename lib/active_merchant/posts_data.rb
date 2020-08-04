@@ -76,16 +76,18 @@ module ActiveMerchant #:nodoc:
 
     private
 
+    ## MKCHANGE: added `ActiveMerchant::`
     def new_connection(endpoint)
-      Connection.new(endpoint)
+      ActiveMerchant::Connection.new(endpoint)
     end
 
+    ## MKCHANGE: added `ActiveMerchant::`
     def handle_response(response)
       case response.code.to_i
       when 200...300
         response.body
       else
-        raise ResponseError.new(response)
+        raise ActiveMerchant::ResponseError.new(response)
       end
     end
   end

@@ -1,0 +1,933 @@
+Class,Method,Inferred Type,Original Type,Source Code,Comments
+ActiveMerchant::Connection,initialize,((String and URI::HTTP)) -> self,,"def initialize(endpoint)
+      @endpoint     = endpoint.is_a?(URI) ? endpoint : URI.parse(endpoint)
+      @open_timeout = OPEN_TIMEOUT
+      @read_timeout = READ_TIMEOUT
+      @retry_safe   = RETRY_SAFE
+      @verify_peer  = VERIFY_PEER
+      @ca_file      = CA_FILE
+      @ca_path      = CA_PATH
+      @max_retries  = MAX_RETRIES
+      @ignore_http_status = false
+      @ssl_version = nil
+      if Net::HTTP.instance_methods.include?(:min_version=)
+        @min_version = MIN_VERSION
+        @max_version = nil
+      end
+      @ssl_connection = {}
+      @proxy_address = :ENV
+      @proxy_port = nil
+    end",""
+ActiveMerchant::Connection,wiredump_device=,([ frozen?: () -> XXX ]) -> [ frozen?: () -> XXX ],,"def wiredump_device=(device)
+      raise ArgumentError, ""can't wiredump to frozen #{device.class}"" if device&.frozen?
+      @wiredump_device = device
+    end",""
+ActiveMerchant::Connection,http,() -> (XXX or XXX),,"def http
+      @http ||= begin
+        http = Net::HTTP.new(endpoint.host, endpoint.port, proxy_address, proxy_port)
+        configure_debugging(http)
+        configure_timeouts(http)
+        configure_ssl(http)
+        configure_cert(http)
+        http
+      end
+    end",""
+ActiveMerchant::Connection,configure_debugging,(Net::HTTP) -> XXX,,"def configure_debugging(http)
+      http.set_debug_output(wiredump_device)
+    end",""
+ActiveMerchant::Connection,configure_timeouts,((ActiveMerchant::Billing::Gateway or ActiveMerchant::Connection or Net::HTTP)) -> XXX,,"def configure_timeouts(http)
+      http.open_timeout = open_timeout
+      http.read_timeout = read_timeout
+    end",""
+ActiveMerchant::Connection,configure_ssl,(Net::HTTP) -> nil,,"def configure_ssl(http)
+      return unless endpoint.scheme == 'https'
+
+      http.use_ssl = true
+      http.ssl_version = ssl_version if ssl_version
+      if http.respond_to?(:min_version=)
+        http.min_version = min_version if min_version
+        http.max_version = max_version if max_version
+      end
+
+      if verify_peer
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        http.ca_file     = ca_file
+        http.ca_path     = ca_path
+      else
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
+    end",""
+ActiveMerchant::Connection,configure_cert,((Net::HTTP or OpenSSL::SSL::SSLContext)) -> nil,,"def configure_cert(http)
+      return if pem.blank?
+
+      http.cert = OpenSSL::X509::Certificate.new(pem)
+
+      if pem_password
+        http.key = OpenSSL::PKey::RSA.new(pem, pem_password)
+      else
+        http.key = OpenSSL::PKey::RSA.new(pem)
+      end
+    end",""
+ActiveMerchant::Connection,debug,"(XXX, ?XXX) -> XXX",,"def debug(message, tag = nil)
+      log(:debug, message, tag)
+    end",""
+ActiveMerchant::Connection,info,"(XXX, ?XXX) -> XXX",,"def info(message, tag = nil)
+      log(:info, message, tag)
+    end",""
+ActiveMerchant::Connection,error,"(XXX, ?XXX) -> XXX",,"def error(message, tag = nil)
+      log(:error, message, tag)
+    end",""
+ActiveMerchant::Connection,log,"(XXX, XXX, XXX) -> XXX",,"def log(level, message, tag)
+      message = ""[#{tag}] #{message}"" if tag
+      logger&.send(level, message)
+    end",""
+ActiveMerchant::CountryCode,initialize,([ to_s: () -> String ]) -> self,,"def initialize(value)
+      @value = value.to_s.upcase
+      detect_format
+    end",""
+ActiveMerchant::CountryCode,to_s,() -> XXX,,"def to_s
+      value
+    end",""
+ActiveMerchant::CountryCode,detect_format,() -> (:alpha2 or :alpha3 or :numeric),,"def detect_format
+      case @value
+      when /^[[:alpha:]]{2}$/
+        @format = :alpha2
+      when /^[[:alpha:]]{3}$/
+        @format = :alpha3
+      when /^[[:digit:]]{3}$/
+        @format = :numeric
+      else
+        raise CountryCodeFormatError, ""The country code is not formatted correctly #{@value}""
+      end
+    end",""
+ActiveMerchant::Country,initialize,"(?([ collect: () {(XXX, XXX) -> XXX} -> XXX ] and [ delete: (:name) -> XXX ])) -> self",,"def initialize(options = {})
+      @name = options.delete(:name)
+      @codes = options.collect { |k, v| CountryCode.new(v) }
+    end",""
+ActiveMerchant::Country,code,(Object) -> nil,,"def code(format)
+      @codes.detect { |c| c.format == format }
+    end",""
+ActiveMerchant::Country,==,([ name: () -> XXX ]) -> (false or true),,"def ==(other)
+      if other.class == ActiveMerchant::Country
+        (@name == other.name)
+      else
+        super
+      end
+    end",""
+ActiveMerchant::Country,hash,() -> Number,,"def hash
+      @name.hash
+    end",""
+ActiveMerchant::Country,to_s,() -> String,,"def to_s
+      @name
+    end",""
+[s]ActiveMerchant::Country,find,(String) -> ActiveMerchant::Country,,"def self.find(name)
+      raise InvalidCountryCodeError, 'Cannot lookup country for an empty name' if name.blank?
+
+      case name.length
+      when 2, 3
+        upcase_name = name.upcase
+        country_code = CountryCode.new(name)
+        country = COUNTRIES.detect { |c| c[country_code.format] == upcase_name }
+      else
+        country = COUNTRIES.detect { |c| c[:name].casecmp(name).zero? }
+      end
+      raise InvalidCountryCodeError, ""No country could be found for the country #{name}"" if country.nil?
+      Country.new(country.dup)
+    end",""
+ActiveMerchant::Empty,empty?,(XXX) -> (false or true),,"def empty?(value)      
+      case value
+      when nil
+        true
+      when Array, Hash
+        value.empty?
+      when String
+        value.strip.empty?
+      when Numeric
+        (value == 0)
+      else
+        false
+      end
+    end",""
+ActiveMerchant::ConnectionError,initialize,"(XXX, XXX) -> self",,"def initialize(message, triggering_exception)
+      super(message)
+      @triggering_exception = triggering_exception
+    end",""
+ActiveMerchant::ResponseError,initialize,"(([ body: () -> XXX ] and [ code: () -> XXX ]), ?nil) -> self",,"def initialize(response, message = nil)
+      @response = response
+      @message  = message
+    end",""
+ActiveMerchant::ResponseError,to_s,() -> String,,"def to_s
+      ""Failed with #{response.code} #{response.message if response.respond_to?(:message)}""
+    end",""
+[s]ActiveMerchant::NetworkConnectionRetries,included,"([ send: (:attr_accessor, :retry_safe) -> XXX ]) -> XXX",,"def self.included(base)
+      base.send(:attr_accessor, :retry_safe)
+    end",""
+[s]ActiveMerchant::NetworkConnectionRetries,log,"([ send: (XXX, XXX) -> XXX ], XXX, XXX, ?XXX) -> XXX",,"def self.log(logger, level, message, tag=nil)
+      tag ||= self.class.to_s
+      message = ""[#{tag}] #{message}""
+      logger&.send(level, message)
+    end",""
+ActiveMerchant::NetworkConnectionRetries,log_with_retry_details,"([ send: (XXX, XXX) -> XXX ], XXX, XXX, XXX, XXX) -> XXX",,"def log_with_retry_details(logger, attempts, time, message, tag)
+      ActiveMerchant::NetworkConnectionRetries.log(logger, :info, 'connection_attempt=%d connection_request_time=%.4fs connection_msg=""%s""' % [attempts, time, message], tag)
+    end",""
+ActiveMerchant::NetworkConnectionRetries,derived_error_message,"(([ []: (XXX) -> XXX ] and [ keys: () -> XXX ]), Module) -> nil",,"def derived_error_message(errors, klass)
+      key = (errors.keys & klass.ancestors).first
+      key ? errors[key] : nil
+    end",""
+ActiveMerchant::PostData,to_post_data,() -> String,,"def to_post_data
+      collect { |key, value| ""#{key}=#{CGI.escape(value.to_s)}"" }.join('&')
+    end",""
+ActiveMerchant::PostData,required?,(XXX) -> (false or true),,"def required?(key)
+      required_fields.include?(key)
+    end",""
+ActiveMerchant::PostsData,ssl_get,"(XXX, ?XXX) -> XXX",,"def ssl_get(endpoint, headers={})
+      ssl_request(:get, endpoint, nil, headers)
+    end",""
+ActiveMerchant::PostsData,ssl_post,"(XXX, XXX, ?XXX) -> XXX",,"def ssl_post(endpoint, data, headers = {})
+      ssl_request(:post, endpoint, data, headers)
+    end",""
+ActiveMerchant::PostsData,ssl_request,"(XXX, XXX, XXX, XXX) -> XXX",,"def ssl_request(method, endpoint, data, headers)
+      handle_response(raw_ssl_request(method, endpoint, data, headers))
+    end",""
+ActiveMerchant::PostsData,new_connection,((String and URI::HTTP)) -> ActiveMerchant::Connection,,"def new_connection(endpoint)
+      ActiveMerchant::Connection.new(endpoint)
+    end","## MKCHANGE: added `ActiveMerchant::`
+"
+ActiveMerchant::PostsData,handle_response,(([ body: () -> XXX ] and [ code: () -> XXX ])) -> XXX,,"def handle_response(response)
+      case response.code.to_i
+      when 200...300
+        response.body
+      else
+        raise ActiveMerchant::ResponseError.new(response)
+      end
+    end","## MKCHANGE: added `ActiveMerchant::`
+"
+ActiveMerchant::Billing::ApplePayPaymentToken,type,() -> String,,"def type
+        'apple_pay'
+      end",""
+[s]ActiveMerchant::Billing::AVSResult,messages,() -> { String: String },,"def self.messages
+        MESSAGES
+      end",""
+ActiveMerchant::Billing::AVSResult,initialize,(([ []: (:code) -> XXX ] and [ []: (:postal_match) -> XXX ] and [ []: (:street_match) -> XXX ])) -> self,,"def initialize(attrs)
+        attrs ||= {}
+
+        @code = attrs[:code].upcase unless attrs[:code].blank?
+        @message = self.class.messages[code]
+
+        if attrs[:street_match].blank?
+          @street_match = STREET_MATCH_CODE[code]
+        else
+          @street_match = attrs[:street_match].upcase
+        end
+
+        if attrs[:postal_match].blank?
+          @postal_match = POSTAL_MATCH_CODE[code]
+        else
+          @postal_match = attrs[:postal_match].upcase
+        end
+      end",""
+ActiveMerchant::Billing::AVSResult,to_hash,"() -> Hash<String, (XXX or XXX or XXX or XXX)>",,"def to_hash
+        { 'code' => code,
+          'message' => message,
+          'street_match' => street_match,
+          'postal_match' => postal_match}
+      end",""
+[s]ActiveMerchant::Billing::Base,gateway_mode=,(XXX) -> XXX,,"def self.gateway_mode=(mode)
+        ActiveMerchant.deprecated(GATEWAY_MODE_DEPRECATION_MESSAGE)
+        @@mode = mode
+      end",""
+[s]ActiveMerchant::Billing::Base,gateway_mode,() -> XXX,,"def self.gateway_mode
+        ActiveMerchant.deprecated(GATEWAY_MODE_DEPRECATION_MESSAGE)
+        @@mode
+      end",""
+[s]ActiveMerchant::Billing::Base,gateway,(String) -> Object,,"def self.gateway(name)
+        name_str = name.to_s.strip.downcase
+
+        raise(ArgumentError, 'A gateway provider must be specified') if name_str.blank?
+
+        begin
+          ::ActiveMerchant::Billing.const_get(""#{name_str}_gateway"".camelize)
+        rescue
+          raise ArgumentError, ""The specified gateway is not valid (#{name_str})""
+        end
+      end","# Return the matching gateway for the provider
+# * <tt>bogus</tt>: BogusGateway - Does nothing (for testing)
+# * <tt>moneris</tt>: MonerisGateway
+# * <tt>authorize_net</tt>: AuthorizeNetGateway
+# * <tt>trust_commerce</tt>: TrustCommerceGateway
+#
+#   ActiveMerchant::Billing::Base.gateway('moneris').new
+"
+[s]ActiveMerchant::Billing::Base,test?,() -> (false or true),,"def self.test?
+        mode == :test
+      end","# A check to see if we're in test mode
+"
+ActiveMerchant::Billing::Check,name,() -> String,,"def name
+        @name ||= ""#{first_name} #{last_name}"".strip
+      end",""
+ActiveMerchant::Billing::Check,name=,(String) -> String,,"def name=(value)
+        return if empty?(value)
+
+        @name = value
+        segments = value.split(' ')
+        @last_name = segments.pop
+        @first_name = segments.join(' ')
+      end",""
+ActiveMerchant::Billing::Check,validate,() -> XXX,,"def validate
+        errors = []
+
+        [:name, :routing_number, :account_number].each do |attr|
+          errors << [attr, 'cannot be empty'] if empty?(self.send(attr))
+        end
+
+        errors << [:routing_number, 'is invalid'] unless valid_routing_number?
+
+        errors << [:account_holder_type, 'must be personal or business'] if !empty?(account_holder_type) && !%w[business personal].include?(account_holder_type.to_s)
+
+        errors << [:account_type, 'must be checking or savings'] if !empty?(account_type) && !%w[checking savings].include?(account_type.to_s)
+
+        errors_hash(errors)
+      end",""
+ActiveMerchant::Billing::Check,type,() -> String,,"def type
+        'check'
+      end",""
+ActiveMerchant::Billing::Check,credit_card?,() -> false,,"def credit_card?
+        false
+      end",""
+ActiveMerchant::Billing::Check,valid_routing_number?,() -> (false or true),,"def valid_routing_number?
+        digits = routing_number.to_s.split('').map(&:to_i).select { |d| (0..9).cover?(d) }
+        case digits.size
+        when 9
+          checksum = ((3 * (digits[0] + digits[3] + digits[6])) +
+                      (7 * (digits[1] + digits[4] + digits[7])) +
+                           (digits[2] + digits[5] + digits[8])) % 10
+          case checksum
+          when 0
+            true
+          else
+            false
+          end
+        else
+          false
+        end
+      end","# Routing numbers may be validated by calculating a checksum and dividing it by 10. The
+# formula is:
+#   (3(d1 + d4 + d7) + 7(d2 + d5 + d8) + 1(d3 + d6 + d9))mod 10 = 0
+# See http://en.wikipedia.org/wiki/Routing_transit_number#Internal_checksums
+"
+ActiveMerchant::Billing::CreditCard,number=,(String) -> String,,"def number=(value)
+        @number = (empty?(value) ? value : value.to_s.gsub(/[^\d]/, ''))
+      end",""
+ActiveMerchant::Billing::CreditCard,brand,() -> String,,"def brand
+        if !defined?(@brand) || empty?(@brand)
+          self.class.brand?(number)
+        else
+          @brand
+        end
+      end","# Returns or sets the credit card brand.
+#
+# Valid card types are
+#
+# * +'visa'+
+# * +'master'+
+# * +'discover'+
+# * +'american_express'+
+# * +'diners_club'+
+# * +'jcb'+
+# * +'dankort'+
+# * +'maestro'+
+# * +'forbrugsforeningen'+
+# * +'elo'+
+# * +'alelo'+
+# * +'cabal'+
+# * +'naranja'+
+# * +'union_pay'+
+#
+# Or, if you wish to test your implementation, +'bogus'+.
+#
+# @return (String) the credit card brand
+"
+ActiveMerchant::Billing::CreditCard,brand=,((String and [ respond_to?: (:downcase) -> XXX ])) -> String,,"def brand=(value)
+        value = value && value.to_s.dup
+        @brand = (value.respond_to?(:downcase) ? value.downcase : value)
+      end",""
+ActiveMerchant::Billing::CreditCard,require_verification_value=,((false or true)) -> (false or true),,"def require_verification_value=(value)
+        @require_verification_value_set = true
+        @require_verification_value = value
+      end","# Sets if the credit card requires a verification value.
+#
+# @return [Boolean]
+"
+ActiveMerchant::Billing::CreditCard,requires_verification_value?,() -> (false or true),,"def requires_verification_value?
+        @require_verification_value_set ||= false
+        if @require_verification_value_set
+          @require_verification_value
+        else
+          self.class.requires_verification_value?
+        end
+      end","# Returns if this credit card needs a verification value.
+#
+# By default this returns the configured value from `CreditCard.require_verification_value`,
+# but one can set a per instance requirement with `credit_card.require_verification_value = false`.
+#
+# @return [Boolean]
+"
+ActiveMerchant::Billing::CreditCard,type,() -> String,,"def type
+        ActiveMerchant.deprecated 'CreditCard#type is deprecated and will be removed from a future release of ActiveMerchant. Please use CreditCard#brand instead.'
+        brand
+      end",""
+ActiveMerchant::Billing::CreditCard,type=,((String and [ respond_to?: (:downcase) -> XXX ])) -> String,,"def type=(value)
+        ActiveMerchant.deprecated 'CreditCard#type is deprecated and will be removed from a future release of ActiveMerchant. Please use CreditCard#brand instead.'
+        self.brand = value
+      end",""
+ActiveMerchant::Billing::CreditCard,expiry_date,() -> ActiveMerchant::Billing::CreditCard::ExpiryDate,,"def expiry_date
+        ExpiryDate.new(@month, @year)
+      end","# Provides proxy access to an expiry date object
+#
+# @return [ExpiryDate]
+"
+ActiveMerchant::Billing::CreditCard,expired?,() -> (false or true),,"def expired?
+        expiry_date.expired?
+      end","# Returns whether the credit card has expired.
+#
+# @return +true+ if the card has expired, +false+ otherwise
+"
+ActiveMerchant::Billing::CreditCard,name?,() -> (false or true),,"def name?
+        first_name? || last_name?
+      end","# Returns whether either the +first_name+ or the +last_name+ attributes has been set.
+"
+ActiveMerchant::Billing::CreditCard,first_name?,() -> (false or true),,"def first_name?
+        first_name.present?
+      end","# Returns whether the +first_name+ attribute has been set.
+"
+ActiveMerchant::Billing::CreditCard,last_name?,() -> (false or true),,"def last_name?
+        last_name.present?
+      end","# Returns whether the +last_name+ attribute has been set.
+"
+ActiveMerchant::Billing::CreditCard,name,() -> String,,"def name
+        ""#{first_name} #{last_name}"".strip
+      end","# Returns the full name of the card holder.
+#
+# @return [String] the full name of the card holder
+"
+ActiveMerchant::Billing::CreditCard,name=,(String) -> XXX,,"def name=(full_name)
+        names = full_name.split
+        self.last_name  = names.pop
+        self.first_name = names.join(' ')
+      end",""
+ActiveMerchant::Billing::CreditCard,verification_value?,() -> (false or true),,"def verification_value?
+        !verification_value.blank?
+      end",""
+ActiveMerchant::Billing::CreditCard,display_number,() -> String,,"def display_number
+        self.class.mask(number)
+      end","# Returns a display-friendly version of the card number.
+#
+# All but the last 4 numbers are replaced with an ""X"", and hyphens are
+# inserted in order to improve legibility.
+#
+# @example
+#   credit_card = CreditCard.new(:number => ""2132542376824338"")
+#   credit_card.display_number  # ""XXXX-XXXX-XXXX-4338""
+#
+# @return [String] a display-friendly version of the card number
+"
+ActiveMerchant::Billing::CreditCard,first_digits,() -> String,,"def first_digits
+        self.class.first_digits(number)
+      end",""
+ActiveMerchant::Billing::CreditCard,last_digits,() -> String,,"def last_digits
+        self.class.last_digits(number)
+      end",""
+ActiveMerchant::Billing::CreditCard,validate,() -> XXX,,"def validate
+        errors = validate_essential_attributes + validate_verification_value
+
+        # Bogus card is pretty much for testing purposes. Lets just skip these extra tests if its used
+        return errors_hash(errors) if brand == 'bogus'
+
+        errors_hash(
+          errors +
+          validate_card_brand_and_number
+        )
+      end","# Validates the credit card details.
+#
+# Any validation errors are added to the {#errors} attribute.
+"
+[s]ActiveMerchant::Billing::CreditCard,requires_verification_value?,() -> (false or true),,"def self.requires_verification_value?
+        require_verification_value
+      end",""
+[s]ActiveMerchant::Billing::CreditCard,requires_name?,() -> (false or true),,"def self.requires_name?
+        require_name
+      end",""
+ActiveMerchant::Billing::CreditCard,emv?,() -> (false or true),,"def emv?
+        icc_data.present?
+      end",""
+ActiveMerchant::Billing::CreditCard,validate_essential_attributes,"() -> [[:first_name, String], [:last_name, String], [:month, String], [:year, String], [:month, String], [:year, String], [:year, String]]",,"def validate_essential_attributes #:nodoc:
+        errors = []
+
+        if self.class.requires_name?
+          errors << [:first_name, 'cannot be empty'] if first_name.blank?
+          errors << [:last_name,  'cannot be empty'] if last_name.blank?
+        end
+
+        if(empty?(month) || empty?(year))
+          errors << [:month, 'is required'] if empty?(month)
+          errors << [:year,  'is required'] if empty?(year)
+        else
+          errors << [:month, 'is not a valid month'] if !valid_month?(month)
+
+          if expired?
+            errors << [:year,  'expired']
+          else
+            errors << [:year,  'is not a valid year'] if !valid_expiry_year?(year)
+          end
+        end
+
+        errors
+      end",""
+ActiveMerchant::Billing::CreditCard,validate_card_brand_and_number,"() -> Array<([:brand, String] or [:number, String])>",,"def validate_card_brand_and_number #:nodoc:
+        errors = []
+
+        if !empty?(brand)
+          errors << [:brand, 'is invalid'] if !CreditCard.card_companies.include?(brand)
+        end
+
+        if empty?(number)
+          errors << [:number, 'is required']
+        elsif !CreditCard.valid_number?(number)
+          errors << [:number, 'is not a valid credit card number']
+        end
+
+        if errors.empty?
+          errors << [:brand, 'does not match the card number'] if !CreditCard.matching_brand?(number, brand)
+        end
+
+        errors
+      end",""
+ActiveMerchant::Billing::CreditCard,validate_verification_value,"() -> Array<[:verification_value, String]>",,"def validate_verification_value #:nodoc:
+        errors = []
+
+        if verification_value?
+          errors << [:verification_value, ""should be #{card_verification_value_length(brand)} digits""] unless valid_card_verification_value?(verification_value, brand)
+        elsif requires_verification_value? && !valid_card_verification_value?(verification_value, brand)
+          errors << [:verification_value, 'is required']
+        end
+        errors
+      end",""
+ActiveMerchant::Billing::CreditCard::ExpiryDate,initialize,"([ to_i: () -> Number ], [ to_i: () -> Number ]) -> self",,"def initialize(month, year)
+          @month = month.to_i
+          @year = year.to_i
+        end",""
+ActiveMerchant::Billing::CreditCard::ExpiryDate,expired?,() -> (false or true),,"def expired? #:nodoc:
+          Time.now.utc > expiration
+        end",""
+ActiveMerchant::Billing::CreditCard::ExpiryDate,expiration,() -> Time,,"def expiration #:nodoc:
+          Time.utc(year, month, month_days, 23, 59, 59)
+        rescue ArgumentError
+          Time.at(0).utc
+        end",""
+ActiveMerchant::Billing::CreditCard::ExpiryDate,month_days,() -> Number,,"def month_days
+          mdays = [nil, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+          mdays[2] = 29 if Date.leap?(year)
+          mdays[month]
+        end",""
+ActiveMerchant::Billing::CreditCardFormatting,expdate,((ActiveMerchant::Billing::CreditCard or ActiveMerchant::Billing::CreditCard::ExpiryDate or ActiveSupport::TimeWithZone or Date or Number or TZInfo::TimeOrDateTime or Time)) -> String,,"def expdate(credit_card)
+        ""#{format(credit_card.month, :two_digits)}#{format(credit_card.year, :two_digits)}""
+      end",""
+ActiveMerchant::Billing::CreditCardFormatting,format,"(([ blank?: () -> XXX ] and [ to_i: () -> Number ]), XXX) -> ([ blank?: () -> XXX ] and [ to_i: () -> Number ])",,"def format(number, option)
+        return '' if number.blank?
+
+        case option
+        when :two_digits  then sprintf('%.2i', number.to_i)[-2..-1]
+        when :four_digits then sprintf('%.4i', number.to_i)[-4..-1]
+        else number
+        end
+      end","# This method is used to format numerical information pertaining to credit cards.
+#
+#   format(2005, :two_digits)  # => ""05""
+#   format(05,   :four_digits) # => ""0005""
+"
+[s]ActiveMerchant::Billing::CreditCardMethods,included,([ extend: (Module) -> XXX ]) -> XXX,,"def self.included(base)
+        base.extend(ClassMethods)
+      end",""
+[s]ActiveMerchant::Billing::CreditCardMethods,in_bin_range?,"([ to_i: () -> Number ], [ any?: () {(XXX) -> XXX} -> XXX ]) -> (false or true)",,"def self.in_bin_range?(number, ranges)
+        bin = number.to_i
+        ranges.any? do |range|
+          range.cover?(bin)
+        end
+      end",""
+ActiveMerchant::Billing::CreditCardMethods,valid_month?,([ to_i: () -> Number ]) -> (false or true),,"def valid_month?(month)
+        (1..12).cover?(month.to_i)
+      end",""
+ActiveMerchant::Billing::CreditCardMethods,credit_card?,() -> true,,"def credit_card?
+        true
+      end",""
+ActiveMerchant::Billing::CreditCardMethods,valid_expiry_year?,([ to_i: () -> Number ]) -> (false or true),,"def valid_expiry_year?(year)
+        (Time.now.year..Time.now.year + 20).cover?(year.to_i)
+      end",""
+ActiveMerchant::Billing::CreditCardMethods,valid_start_year?,(([ to_i: () -> Number ] and [ to_s: () -> String ])) -> (false or true),,"def valid_start_year?(year)
+        ((year.to_s =~ /^\d{4}$/) && (year.to_i > 1987))
+      end",""
+ActiveMerchant::Billing::CreditCardMethods,valid_card_verification_value?,"([ to_s: () -> String ], XXX) -> Number",,"def valid_card_verification_value?(cvv, brand)
+        cvv.to_s =~ /^\d{#{card_verification_value_length(brand)}}$/
+      end","# Credit card providers have 3 digit verification values
+# This isn't standardised, these are called various names such as
+# CVC, CVV, CID, CSC and more
+# See: http://en.wikipedia.org/wiki/Card_security_code
+# American Express is the exception with 4 digits
+#
+# Below are links from the card providers with their requirements
+# visa:             http://usa.visa.com/personal/security/3-digit-security-code.jsp
+# master:           http://www.mastercard.com/ca/merchant/en/getstarted/Anatomy_MasterCard.html
+# jcb:              http://www.jcbcard.com/security/info.html
+# diners_club:      http://www.dinersclub.com/assets/DinersClub_card_ID_features.pdf
+# discover:         https://www.discover.com/credit-cards/help-center/glossary.html
+# american_express: https://online.americanexpress.com/myca/fuidfyp/us/action?request_type=un_fuid&Face=en_US
+"
+ActiveMerchant::Billing::CreditCardMethods,card_verification_value_length,(XXX) -> Number,,"def card_verification_value_length(brand)
+        case brand
+        when 'american_express'
+          4
+        when 'maestro'
+          0
+        else
+          3
+        end
+      end",""
+ActiveMerchant::Billing::CreditCardMethods,valid_issue_number?,([ to_s: () -> String ]) -> Number,,"def valid_issue_number?(number)
+        (number.to_s =~ /^\d{1,2}$/)
+      end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,valid_number?,(String) -> (false or true),,"def valid_number?(number)
+          valid_test_mode_card_number?(number) ||
+            valid_card_number_length?(number) &&
+              valid_card_number_characters?(number) &&
+              valid_by_algorithm?(brand?(number), number)
+        end","# Returns true if it validates. Optionally, you can pass a card brand as an argument and
+# make sure it is of the correct brand.
+#
+# References:
+# - http://perl.about.com/compute/perl/library/nosearch/P073000.htm
+# - http://www.beachnet.com/~hstiles/cardtype.html
+"
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,card_companies,() -> [String],,"def card_companies
+          ::ActiveMerchant::Billing::CreditCardMethods::CARD_COMPANY_DETECTORS.keys
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,brand?,(XXX) -> String,,"def brand?(number)
+          return 'bogus' if valid_test_mode_card_number?(number)
+
+          ActiveMerchant::Billing::CreditCardMethods::CARD_COMPANY_DETECTORS.each do |company, func|
+            return company.dup if func.call(number)
+          end
+
+          return nil
+        end","# Returns a string containing the brand of card from the list of known information below.
+"
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,electron?,"(([ length: () -> XXX ] and [ slice: (Number, Number) -> XXX ])) -> (false or true)",,"def electron?(number)
+          return false unless [16, 19].include?(number&.length)
+
+          # don't recalculate for each range
+          bank_identification_number = first_digits(number).to_i
+
+          ActiveMerchant::Billing::CreditCardMethods::ELECTRON_RANGES.any? do |range|
+            range.include?(bank_identification_number)
+          end
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,type?,(XXX) -> String,,"def type?(number)
+          ActiveMerchant.deprecated 'CreditCard#type? is deprecated and will be removed from a future release of ActiveMerchant. Please use CreditCard#brand? instead.'
+          brand?(number)
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,first_digits,"([ slice: (Number, Number) -> XXX ]) -> String",,"def first_digits(number)
+          number&.slice(0, 6) || ''
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,last_digits,(String) -> String,,"def last_digits(number)
+          return '' if number.nil?
+          number.length <= 4 ? number : number.slice(-4..-1)
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,mask,(String) -> String,,"def mask(number)
+          ""XXXX-XXXX-XXXX-#{last_digits(number)}""
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,matching_brand?,"(XXX, XXX) -> (false or true)",,"def matching_brand?(number, brand)
+          brand?(number) == brand
+        end","# Checks to see if the calculated brand matches the specified brand
+"
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,matching_type?,"(XXX, XXX) -> (false or true)",,"def matching_type?(number, brand)
+          ActiveMerchant.deprecated 'CreditCard#matching_type? is deprecated and will be removed from a future release of ActiveMerchant. Please use CreditCard#matching_brand? instead.'
+          matching_brand?(number, brand)
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,valid_card_number_length?,(([ length: () -> XXX ] and [ nil?: () -> XXX ])) -> (false or true),,"def valid_card_number_length?(number) #:nodoc:
+          return false if number.nil?
+          number.length >= 12
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,valid_card_number_characters?,(([ match: (Regexp) -> XXX ] and [ nil?: () -> XXX ])) -> (false or true),,"def valid_card_number_characters?(number) #:nodoc:
+          return false if number.nil?
+          !number.match(/\D/)
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,valid_test_mode_card_number?,(XXX) -> (false or true),,"def valid_test_mode_card_number?(number) #:nodoc:
+          ActiveMerchant::Billing::Base.test? &&
+            %w[1 2 3 success failure error].include?(number)
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,valid_by_algorithm?,"(XXX, [ reverse: () -> XXX ]) -> (false or true)",,"def valid_by_algorithm?(brand, numbers) #:nodoc:
+          case brand
+          when 'naranja'
+            valid_naranja_algo?(numbers)
+          else
+            valid_luhn?(numbers)
+          end
+        end",""
+ActiveMerchant::Billing::CreditCardMethods::ClassMethods,valid_luhn?,([ reverse: () -> XXX ]) -> (false or true),,"def valid_luhn?(numbers) #:nodoc:
+          sum = 0
+
+          odd = true
+          numbers.reverse.bytes.each do |number|
+            if odd
+              odd = false
+              sum += ODD_LUHN_VALUE[number]
+            else
+              odd = true
+              sum += EVEN_LUHN_VALUE[number]
+            end
+          end
+
+          sum % 10 == 0
+        end","# Checks the validity of a card number by use of the Luhn Algorithm.
+# Please see http://en.wikipedia.org/wiki/Luhn_algorithm for details.
+# This implementation is from the luhn_checksum gem, https://github.com/zendesk/luhn_checksum.
+"
+[s]ActiveMerchant::Billing::CVVResult,messages,() -> { String: String },,"def self.messages
+        MESSAGES
+      end",""
+ActiveMerchant::Billing::CVVResult,initialize,(([ blank?: () -> XXX ] and [ upcase: () -> XXX ])) -> self,,"def initialize(code)
+        @code = (code.blank? ? nil : code.upcase)
+        @message = MESSAGES[@code]
+      end",""
+ActiveMerchant::Billing::CVVResult,to_hash,"() -> Hash<String, (XXX or XXX)>",,"def to_hash
+        {
+          'code' => code,
+          'message' => message
+        }
+      end",""
+[s]ActiveMerchant::Billing::Gateway,inherited,(XXX) -> XXX,,"def self.inherited(subclass)
+        super
+        @@implementations << subclass
+      end",""
+ActiveMerchant::Billing::Gateway,generate_unique_id,() -> Number,,"def generate_unique_id
+        SecureRandom.hex(16)
+      end",""
+[s]ActiveMerchant::Billing::Gateway,supports?,([ to_sym: () -> XXX ]) -> (false or true),,"def self.supports?(card_type)
+        supported_cardtypes.include?(card_type.to_sym)
+      end","# Use this method to check if your gateway of interest supports a credit card of some type
+"
+[s]ActiveMerchant::Billing::Gateway,card_brand,(ActiveMerchant::Billing::CreditCard) -> String,,"def self.card_brand(source)
+        result = source.respond_to?(:brand) ? source.brand : source.type
+        result.to_s.downcase
+      end",""
+[s]ActiveMerchant::Billing::Gateway,supported_countries=,(([ dup: () -> XXX ] and [ each: () {(XXX) -> XXX} -> XXX ])) -> XXX,,"def self.supported_countries=(country_codes)
+        country_codes.each do |country_code|
+          raise ActiveMerchant::InvalidCountryCodeError, ""No country could be found for the country #{country_code}"" unless ActiveMerchant::Country.find(country_code)
+        end
+        @supported_countries = country_codes.dup
+      end",""
+[s]ActiveMerchant::Billing::Gateway,supported_countries,() -> [],,"def self.supported_countries
+        @supported_countries ||= []
+      end",""
+ActiveMerchant::Billing::Gateway,supported_countries,() -> [],,"def supported_countries
+        self.class.supported_countries
+      end",""
+ActiveMerchant::Billing::Gateway,card_brand,(ActiveMerchant::Billing::CreditCard) -> String,,"def card_brand(source)
+        self.class.card_brand(source)
+      end",""
+ActiveMerchant::Billing::Gateway,initialize,(?{  }) -> self,,"def initialize(options = {})
+        @options = options
+      end","# Initialize a new gateway.
+#
+# See the documentation for the gateway you will be using to make sure there are no other
+# required options.
+"
+ActiveMerchant::Billing::Gateway,test?,() -> (false or true),,"def test?
+        (@options.has_key?(:test) ? @options[:test] : Base.test?)
+      end","# Are we running in test mode?
+"
+ActiveMerchant::Billing::Gateway,supports_scrubbing?,() -> false,,"def supports_scrubbing?
+        false
+      end","# Does this gateway know how to scrub sensitive information out of HTTP transcripts?
+"
+ActiveMerchant::Billing::Gateway,scrub,(XXX) -> XXX,,"def scrub(transcript)
+        raise 'This gateway does not support scrubbing.'
+      end",""
+ActiveMerchant::Billing::Gateway,supports_network_tokenization?,() -> false,,"def supports_network_tokenization?
+        false
+      end",""
+ActiveMerchant::Billing::Gateway,add_fields_to_post_if_present,"([ []=: (XXX, XXX) -> XXX ], [ []: (XXX) -> XXX ], [ each: () {(XXX) -> XXX} -> XXX ]) -> XXX",,"def add_fields_to_post_if_present(post, options, fields)
+        fields.each do |field|
+          add_field_to_post_if_present(post, options, field)
+        end
+      end",""
+ActiveMerchant::Billing::Gateway,add_field_to_post_if_present,"([ []=: (XXX, XXX) -> XXX ], [ []: (XXX) -> XXX ], XXX) -> nil",,"def add_field_to_post_if_present(post, options, field)
+        post[field] = options[field] if options[field]
+      end",""
+ActiveMerchant::Billing::Gateway,normalize,((false or nil or true)) -> (false or nil or true),,"def normalize(field)
+        case field
+        when 'true'   then true
+        when 'false'  then false
+        when ''       then nil
+        when 'null'   then nil
+        else field
+        end
+      end",""
+ActiveMerchant::Billing::Gateway,user_agent,() -> (XXX or XXX),,"def user_agent
+        @@ua ||= JSON.dump({
+          :bindings_version => ActiveMerchant::VERSION,
+          :lang => 'ruby',
+          :lang_version => ""#{RUBY_VERSION} p#{RUBY_PATCHLEVEL} (#{RUBY_RELEASE_DATE})"",
+          :platform => RUBY_PLATFORM,
+          :publisher => 'active_merchant'
+        })
+      end",""
+ActiveMerchant::Billing::Gateway,strip_invalid_xml_chars,(String) -> String,,"def strip_invalid_xml_chars(xml)
+        begin
+          REXML::Document.new(xml)
+        rescue REXML::ParseException
+          xml = xml.gsub(/&(?!(?:[a-z]+|#[0-9]+|x[a-zA-Z0-9]+);)/, '&amp;')
+        end
+
+        xml
+      end",""
+ActiveMerchant::Billing::Gateway,name,() -> %any,,"def name
+        self.class.name.scan(/\:\:(\w+)Gateway/).flatten.first
+      end",""
+ActiveMerchant::Billing::Gateway,non_fractional_currency?,([ to_s: () -> String ]) -> (false or true),,"def non_fractional_currency?(currency)
+        self.currencies_without_fractions.include?(currency.to_s)
+      end",""
+ActiveMerchant::Billing::Gateway,three_decimal_currency?,([ to_s: () -> String ]) -> (false or true),,"def three_decimal_currency?(currency)
+        self.currencies_with_three_decimal_places.include?(currency.to_s)
+      end",""
+ActiveMerchant::Billing::Gateway,localized_amount,"(XXX, [ to_s: () -> String ]) -> String",,"def localized_amount(money, currency)
+        amount = amount(money)
+
+        return amount unless non_fractional_currency?(currency) || three_decimal_currency?(currency)
+        if non_fractional_currency?(currency)
+          if self.money_format == :cents
+            sprintf('%.0f', amount.to_f / 100)
+          else
+            amount.split('.').first
+          end
+        elsif three_decimal_currency?(currency)
+          if self.money_format == :cents
+            amount.to_s
+          else
+            sprintf('%.3f', (amount.to_f / 10))
+          end
+        end
+      end",""
+ActiveMerchant::Billing::Gateway,truncate,"([ to_s: () -> String ], Number) -> String",,"def truncate(value, max_size)
+        return nil unless value
+        value.to_s[0, max_size]
+      end",""
+ActiveMerchant::Billing::Gateway,split_names,"(String) -> [(String or XXX), (String or XXX)]",,"def split_names(full_name)
+        names = (full_name || '').split
+        return [nil, nil] if names.size == 0
+
+        last_name  = names.pop
+        first_name = names.join(' ')
+        [first_name, last_name]
+      end",""
+ActiveMerchant::Billing::Gateway,requires!,"(([ []: (Symbol) -> XXX ] and [ has_key?: (Symbol) -> XXX ]), *XXX) -> Array<XXX>",,"def requires!(hash, *params)
+        params.each do |param|
+          if param.is_a?(Array)
+            #param = RDL.type_cast(param, ""Array<Symbol>"")
+            raise ArgumentError.new(""Missing required parameter: #{RDL.type_cast(param, ""Array<Symbol>"").first}"") unless hash.has_key?(RDL.type_cast(param, ""Array<Symbol>"").first)
+
+            valid_options = RDL.type_cast(param, ""Array<Symbol>"")[1..-1]
+            raise ArgumentError.new(""Parameter: #{RDL.type_cast(param, ""Array<Symbol>"").first} must be one of #{valid_options.to_sentence(:words_connector => 'or')}"") unless valid_options.include?(hash[RDL.type_cast(param, ""Array<Symbol>"").first])
+          else
+            raise ArgumentError.new(""Missing required parameter: #{param}"") unless hash.has_key?(param)
+          end
+        end
+      end",""
+ActiveMerchant::Billing::Model,initialize,"(?[ each: () {(XXX, XXX) -> XXX} -> XXX ]) -> self",,"def initialize(attributes = {})
+        attributes.each do |key, value|
+          send(""#{key}="", value)
+        end
+      end",""
+ActiveMerchant::Billing::Model,validate,() -> {  },,"def validate
+        {}
+      end",""
+ActiveMerchant::Billing::NetworkTokenizationCreditCard,source,() -> :apple_pay,,"def source
+        if defined?(@source) && SOURCES.include?(@source)
+          @source
+        else
+          :apple_pay
+        end
+      end",""
+ActiveMerchant::Billing::NetworkTokenizationCreditCard,credit_card?,() -> true,,"def credit_card?
+        true
+      end",""
+ActiveMerchant::Billing::NetworkTokenizationCreditCard,type,() -> String,,"def type
+        'network_tokenization'
+      end",""
+ActiveMerchant::Billing::PaymentToken,initialize,"(XXX, ?[ with_indifferent_access: () -> XXX ]) -> self",,"def initialize(payment_data, options = {})
+        @payment_data = payment_data
+        @metadata = options.with_indifferent_access
+      end",""
+ActiveMerchant::Billing::PaymentToken,type,() -> XXX,,"def type
+        raise NotImplementedError
+      end",""
+ActiveMerchant::Billing::Response,success?,() -> (false or true),,"def success?
+        @success
+      end",""
+ActiveMerchant::Billing::Response,test?,() -> false,,"def test?
+        @test
+      end",""
+ActiveMerchant::Billing::Response,fraud_review?,() -> (false or true),,"def fraud_review?
+        @fraud_review
+      end",""
+ActiveMerchant::Billing::Response,initialize,"((false or true), XXX, ?[ stringify_keys: () -> XXX ], ?([ []: (:authorization) -> XXX ] and [ []: (:avs_result) -> XXX ] and [ []: (:cvv_result) -> XXX ] and [ []: (:emv_authorization) -> XXX ] and [ []: (:error_code) -> XXX ] and [ []: (:fraud_review) -> XXX ] and [ []: (:test) -> XXX ])) -> self",,"def initialize(success, message, params = {}, options = {})
+        @success, @message, @params = success, message, params.stringify_keys
+        @test = options[:test] || false
+        @authorization = options[:authorization]
+        @fraud_review = options[:fraud_review]
+        @error_code = options[:error_code]
+        @emv_authorization = options[:emv_authorization]
+
+        @avs_result = if options[:avs_result].kind_of?(AVSResult)
+                        options[:avs_result].to_hash
+                      else
+                        AVSResult.new(options[:avs_result]).to_hash
+                      end
+
+        @cvv_result = if options[:cvv_result].kind_of?(CVVResult)
+                        options[:cvv_result].to_hash
+                      else
+                        CVVResult.new(options[:cvv_result]).to_hash
+                      end
+      end",""
+[s]ActiveMerchant::Billing::MultiResponse,run,(?false) { XXX } -> XXX,,"def self.run(use_first_response = false, &block)
+        new(use_first_response).tap(&block)
+      end",""
+ActiveMerchant::Billing::MultiResponse,initialize,(?false) -> self,,"def initialize(use_first_response = false)
+        @responses = []
+        @use_first_response = use_first_response
+        @primary_response = nil
+      end",""
+ActiveMerchant::Billing::MultiResponse,process,(?XXX) { () -> XXX } -> nil,,"def process(ignore_result=false)
+        return unless success?
+
+        response = yield
+        self << response
+
+        unless ignore_result
+          if(@use_first_response && response.success?)
+            @primary_response ||= response
+          else
+            @primary_response = response
+          end
+        end
+      end",""
+ActiveMerchant::Billing::MultiResponse,<<,"((ActiveMerchant::Billing::MultiResponse or OpenSSL::OCSP::BasicResponse)) -> [XXX, (ActiveMerchant::Billing::MultiResponse or OpenSSL::OCSP::BasicResponse), XXX, (ActiveMerchant::Billing::MultiResponse or OpenSSL::OCSP::BasicResponse), XXX, (ActiveMerchant::Billing::MultiResponse or OpenSSL::OCSP::BasicResponse), XXX, (ActiveMerchant::Billing::MultiResponse or OpenSSL::OCSP::BasicResponse), XXX, (ActiveMerchant::Billing::MultiResponse or OpenSSL::OCSP::BasicResponse)]",,"def <<(response)
+        if response.is_a?(MultiResponse)
+          response.responses.each { |r| @responses << r }
+        else
+          @responses << response
+        end
+      end",""
+ActiveMerchant::Billing::MultiResponse,success?,() -> true,,"def success?
+        (primary_response ? primary_response.success? : true)
+      end",""

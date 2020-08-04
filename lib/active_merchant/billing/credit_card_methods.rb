@@ -211,14 +211,14 @@ module ActiveMerchant #:nodoc:
         end
 
         def card_companies
-          CARD_COMPANY_DETECTORS.keys
+          ::ActiveMerchant::Billing::CreditCardMethods::CARD_COMPANY_DETECTORS.keys
         end
 
         # Returns a string containing the brand of card from the list of known information below.
         def brand?(number)
           return 'bogus' if valid_test_mode_card_number?(number)
 
-          CARD_COMPANY_DETECTORS.each do |company, func|
+          ActiveMerchant::Billing::CreditCardMethods::CARD_COMPANY_DETECTORS.each do |company, func|
             return company.dup if func.call(number)
           end
 
@@ -231,7 +231,7 @@ module ActiveMerchant #:nodoc:
           # don't recalculate for each range
           bank_identification_number = first_digits(number).to_i
 
-          ELECTRON_RANGES.any? do |range|
+          ActiveMerchant::Billing::CreditCardMethods::ELECTRON_RANGES.any? do |range|
             range.include?(bank_identification_number)
           end
         end
